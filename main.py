@@ -10,6 +10,8 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
+# tf.logging.set_verbosity(tf.logging.INFO)
+
 def cnn_model(features, labels, mode):
     # Input Layer
     # Reshape input to 4-D tensor: [batch_size, width, height, channels]
@@ -74,8 +76,12 @@ def cnn_model(features, labels, mode):
     # Dropout (0.6 probability for keeping the element)
     dropout = tf.contrib.layers.dropout(inputs = fc, keep_prob = 0.6, is_training = (mode == tf.estimator.ModeKeys.TRAIN))
     
-    # TODO: Regression Layer
-
+    # FIXME: Regression Layer
+    regression = tf.contrib.layers.fully_connected(inputs = dropout, num_outputs = 1)
+    
+    # TODO: Predictions and loss
+    print regression
+    loss = tf.losses.mean_squared_error(labels = labels, predictions = regression)
     
 def main():
     training_data, training_labels, validation_data, validation_labels, test_data, test_labels = load_dataset()
