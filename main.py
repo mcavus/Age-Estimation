@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 def cnn_model(features, labels, mode):
     # Input Layer
     # Reshape input to 4-D tensor: [batch_size, width, height, channels]
-    input_layer = tf.reshape(features, [-1, 28, 28, 1])
+    input_layer = tf.reshape(features["x"], [-1, 28, 28, 1])
     
     # Conv1 Layer
     # Compute 32 features using a 5x5 filter with ReLU activation.
@@ -76,64 +76,117 @@ def cnn_model(features, labels, mode):
     # Dropout (0.6 probability for keeping the element)
     dropout = tf.contrib.layers.dropout(inputs = fc, keep_prob = 0.6, is_training = (mode == tf.estimator.ModeKeys.TRAIN))
     
-    # FIXME: Regression Layer
-    regression = tf.contrib.layers.fully_connected(inputs = dropout, num_outputs = 1)
+    # Regression Layer
+    # Input Tensor Shape: [batch_size, 1024]
+    # Output Tensor Shape: [batch_size, 1]
+    regression = tf.contrib.layers.fully_connected(inputs = dropout, num_outputs = 1, activation_fn = None)
     
-    # TODO: Predictions and loss
-    print regression
+    if mode == tf.estimator.ModeKeys.PREDICT:
+      return tf.estimator.EstimatorSpec(mode=mode, predictions = regression)
+    
+    # Loss function
     loss = tf.losses.mean_squared_error(labels = labels, predictions = regression)
     
-def main():
-    training_data, training_labels, validation_data, validation_labels, test_data, test_labels = load_dataset()
-    
-    # estimator
-    cnn_model(training_data, training_labels, None)
+    # Configure the Training Op (for TRAIN mode)
+    if mode == tf.estimator.ModeKeys.TRAIN:
+      optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.0001)
+      train_op = optimizer.minimize(
+          loss = loss,
+          global_step = tf.train.get_global_step())
+      return tf.estimator.EstimatorSpec(mode = mode, loss = loss, train_op = train_op)
 
-def load_dataset():
+    # Add evaluation metrics (for EVAL mode)
+    eval_metric_ops = {
+        "MAE": tf.metrics.mean_absolute_error(
+            labels = labels, predictions = regression)}
+    return tf.estimator.EstimatorSpec(
+        mode = mode, loss = loss, eval_metric_ops = eval_metric_ops)
+
+
+def main(argv):
+    # Load the data
+    training_data, training_labels, validation_data, validation_labels, test_data, test_labels = _load_dataset()
+    
+    # Estimator
+    # cnn_model(training_data, training_labels, None)
+    # age_estimator = tf.contrib.learn.Estimator(model_fn = cnn_model, model_dir="/temp/age_est_convnet_model")
+    age_estimator = tf.estimator.Estimator(model_fn = cnn_model)
+    
+    # TODO: Set up logs
+    '''
+    # Set up logging for predictions
+    # Log the values in the "Softmax" tensor with label "probabilities"
+    tensors_to_log = {"probabilities": "softmax_tensor"}
+    logging_hook = tf.train.LoggingTensorHook(
+        tensors=tensors_to_log, every_n_iter=50)
+    '''
+
+    # Train the model
+    train_input_fn = tf.estimator.inputs.numpy_input_fn(
+        x = {"x": training_data},
+        y = training_labels,
+        batch_size = 100,
+        num_epochs = None,
+        shuffle=True)
+        
+    age_estimator.train(
+        input_fn = train_input_fn,
+        steps=200)
+        #,hooks=[logging_hook])
+
+    # Evaluate the model and print results
+    eval_input_fn = tf.estimator.inputs.numpy_input_fn(
+        x={"x": eval_data}, y=eval_labels, num_epochs=1, shuffle=False)
+    eval_results = mnist_classifier.evaluate(input_fn=eval_input_fn)
+    print(eval_results)
+    
+def _load_dataset():
     # Training set
-    training_data = np.array([], dtype="float32")
+    training_data = []
     training_labels = []
     
     tr_path = 'UTKFace_downsampled/training_set'
     for filename in os.listdir(tr_path):
         training_labels.append(int(filename[:3]))
         img_data = cv2.imread(os.path.join(tr_path, filename), cv2.IMREAD_GRAYSCALE).astype(np.float32)
-    
-        # RESIZE???
-        img_data = cv2.resize(img_data, (28, 28))
+        img_data = cv2.resize(img_data, (28, 28)) # Resize
+        training_data.append(img_data)
         
-        np.append(training_data, np.array(img_data))
+    training_data = np.array(training_data, dtype='float32')
+    training_labels = np.array(training_labels, dtype='float32')
+    training_labels = training_labels.reshape(len(training_labels), 1)
     
-    # FIXME: Validation set
-    validation_data = np.array([])
+    # Validation set
+    validation_data = []
     validation_labels = []
     
     v_path = 'UTKFace_downsampled/validation_set'
     for filename in os.listdir(v_path):
         validation_labels.append(int(filename[:3]))
-        img_data = cv2.imread(os.path.join(v_path, filename), cv2.IMREAD_GRAYSCALE)
+        img_data = cv2.imread(os.path.join(v_path, filename), cv2.IMREAD_GRAYSCALE).astype(np.float32)
+        img_data = cv2.resize(img_data, (28, 28)) # Resize
+        validation_data.append(img_data)
         
-        # RESIZE???
-        img_data = cv2.resize(img_data, (28, 28))
-        
-        np.append(validation_data, np.array(img_data))
+    validation_data = np.array(validation_data, dtype='float32')
+    validation_labels = np.array(validation_labels, dtype='float32')
+    validation_labels = validation_labels.reshape(len(validation_labels), 1)
     
-    # FIXME: Test set
-    test_data = np.array([])
+    # Test set
+    test_data = []
     test_labels = []
     
     t_path = 'UTKFace_downsampled/test_set'
     for filename in os.listdir(t_path):
         test_labels.append(int(filename[:3]))
-        img_data = cv2.imread(os.path.join(t_path, filename), cv2.IMREAD_GRAYSCALE)
+        img_data = cv2.imread(os.path.join(t_path, filename), cv2.IMREAD_GRAYSCALE).astype(np.float32)
+        img_data = cv2.resize(img_data, (28, 28)) # Resize
+        test_data.append(img_data)
         
-        # RESIZE???
-        img_data = cv2.resize(img_data, (28, 28))
-        
-        np.append(test_data, np.array(img_data))
+    test_data = np.array(test_data, dtype='float32')
+    test_labels = np.array(test_labels, dtype='float32')
+    test_labels = test_labels.reshape(len(test_labels), 1)
     
     return training_data, training_labels, validation_data, validation_labels, test_data, test_labels
     
 if __name__ == "__main__":
-  # some run fn. like tf.app.run()
-  main()
+  tf.app.run()
