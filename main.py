@@ -37,13 +37,15 @@ def cnn_model(features, labels, mode):
     # Output Tensor Shape: [batch_size, 14, 14, 32]
     pool1 = tf.contrib.layers.max_pool2d(inputs = conv1, kernel_size = [2, 2], stride = 2)
     
+    bn3 = tf.contrib.layers.batch_norm(inputs = pool1, activation_fn = None)
+
     # Conv2 Layer
     # Compute 64 features using a 5x5 filter.
     # Padding is added to preserve width and height.
     # Input Tensor Shape: [batch_size, 14, 14, 32]
     # Output Tensor Shape: [batch_size, 14, 14, 64]
     conv2 = tf.contrib.layers.conv2d(
-        inputs = pool1,
+        inputs = bn3,
         num_outputs = 64,
         kernel_size = [3, 3],
         padding= 'SAME',
@@ -51,12 +53,14 @@ def cnn_model(features, labels, mode):
         weights_initializer=tf.contrib.layers.xavier_initializer()
     )
     
-    
+
     # Pooling 2 Layer
     # Max pooling layer with a 2x2 filter and stride of 2
     # Input Tensor Shape: [batch_size, 14, 14, 64]
     # Output Tensor Shape: [batch_size, 7, 7, 64]
     pool2 = tf.contrib.layers.max_pool2d(inputs = conv2, kernel_size = [2, 2], stride = 2)
+    
+    bn4 = tf.contrib.layers.batch_norm(inputs = pool2, activation_fn = None)
     
     # TODO: Conv3 Layer
     
@@ -69,18 +73,23 @@ def cnn_model(features, labels, mode):
     # Flatten tensor into a batch of vectors
     # Input Tensor Shape: [batch_size, 7, 7, 64]
     # Output Tensor Shape: [batch_size, 7 * 7 * 64]
-    pool2_flat = tf.reshape(pool2, [-1, 7 * 7 * 64])
+    pool2_flat = tf.reshape(bn4, [-1, 7 * 7 * 64])
 
     # FC Layer with 1024 neurons
     # Input Tensor Shape: [batch_size, 7 * 7 * 64]
     # Output Tensor Shape: [batch_size, 1024]
-    fc = tf.contrib.layers.fully_connected(inputs = pool2_flat, num_outputs = 1024, activation_fn = None, 
+    fc1 = tf.contrib.layers.fully_connected(inputs = pool2_flat, num_outputs = 1024, activation_fn = None, 
                                            weights_initializer=tf.contrib.layers.xavier_initializer())
     
-    bn = tf.contrib.layers.batch_norm(inputs = fc, activation_fn = tf.nn.relu)
+    bn1 = tf.contrib.layers.batch_norm(inputs = fc1, activation_fn = tf.nn.relu)
+
+    fc2 = tf.contrib.layers.fully_connected(inputs = bn1, num_outputs = 1024, activation_fn = None, 
+                                           weights_initializer=tf.contrib.layers.xavier_initializer())
+    
+    bn2 = tf.contrib.layers.batch_norm(inputs = fc2, activation_fn = tf.nn.relu)
 
     # Dropout (0.6 probability for keeping the element)
-    dropout = tf.contrib.layers.dropout(inputs = bn, keep_prob = 1, is_training = (mode == tf.estimator.ModeKeys.TRAIN))
+    dropout = tf.contrib.layers.dropout(inputs = bn2, keep_prob = 1, is_training = (mode == tf.estimator.ModeKeys.TRAIN))
     
     # Regression Layer
     # Input Tensor Shape: [batch_size, 1024]
