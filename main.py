@@ -27,7 +27,8 @@ def cnn_model(features, labels, mode):
         num_outputs = 32,
         kernel_size = [5, 5],
         padding= 'SAME',
-        activation_fn = tf.nn.relu
+        activation_fn = tf.nn.relu,
+        weights_initializer=tf.contrib.layers.xavier_initializer()
     )
     
     # Pooling1 Layer
@@ -46,8 +47,10 @@ def cnn_model(features, labels, mode):
         num_outputs = 64,
         kernel_size = [5, 5],
         padding= 'SAME',
-        activation_fn = tf.nn.relu
+        activation_fn = tf.nn.relu,
+        weights_initializer=tf.contrib.layers.xavier_initializer()
     )
+    
     
     # Pooling 2 Layer
     # Max pooling layer with a 2x2 filter and stride of 2
@@ -74,7 +77,7 @@ def cnn_model(features, labels, mode):
     fc = tf.contrib.layers.fully_connected(inputs = pool2_flat, num_outputs = 1024, activation_fn = tf.nn.relu)
     
     # Dropout (0.6 probability for keeping the element)
-    dropout = tf.contrib.layers.dropout(inputs = fc, keep_prob = 0.6, is_training = (mode == tf.estimator.ModeKeys.TRAIN))
+    dropout = tf.contrib.layers.dropout(inputs = fc, keep_prob = 1, is_training = (mode == tf.estimator.ModeKeys.TRAIN))
     
     # Regression Layer
     # Input Tensor Shape: [batch_size, 1024]
@@ -121,17 +124,19 @@ def main(argv):
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
         x = {"x": training_data},
         y = training_labels,
-        batch_size = 100,
+        batch_size = 256,
         num_epochs = None,
         shuffle=True)
         
     age_estimator.train(
         input_fn = train_input_fn,
-        steps=200)
+        steps=1200)
         #,hooks=[logging_hook])
 
     # TODO: Evaluate the model and print results
-    eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": validation_data}, y = validation_labels, num_epochs = 1, shuffle = False)
+    #eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": validation_data}, y = validation_labels, num_epochs = 1, shuffle = False)
+    eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": training_data}, y = training_labels, num_epochs = 1, shuffle = False)
+
     eval_results = age_estimator.evaluate(input_fn = eval_input_fn)
     print(eval_results)
     
