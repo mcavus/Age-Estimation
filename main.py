@@ -25,7 +25,7 @@ def cnn_model(features, labels, mode):
     conv1 = tf.contrib.layers.conv2d(
         inputs = input_layer,
         num_outputs = 32,
-        kernel_size = [5, 5],
+        kernel_size = [3, 3],
         padding= 'SAME',
         activation_fn = tf.nn.relu,
         weights_initializer=tf.contrib.layers.xavier_initializer()
@@ -45,7 +45,7 @@ def cnn_model(features, labels, mode):
     conv2 = tf.contrib.layers.conv2d(
         inputs = pool1,
         num_outputs = 64,
-        kernel_size = [5, 5],
+        kernel_size = [3, 3],
         padding= 'SAME',
         activation_fn = tf.nn.relu,
         weights_initializer=tf.contrib.layers.xavier_initializer()
