@@ -74,10 +74,12 @@ def cnn_model(features, labels, mode):
     # FC Layer with 1024 neurons
     # Input Tensor Shape: [batch_size, 7 * 7 * 64]
     # Output Tensor Shape: [batch_size, 1024]
-    fc = tf.contrib.layers.fully_connected(inputs = pool2_flat, num_outputs = 1024, activation_fn = tf.nn.relu)
+    fc = tf.contrib.layers.fully_connected(inputs = pool2_flat, num_outputs = 1024, activation_fn = None)
     
+    bn = tf.contrib.layers.batch_norm(inputs = fc, activation_fn = tf.nn.relu)
+
     # Dropout (0.6 probability for keeping the element)
-    dropout = tf.contrib.layers.dropout(inputs = fc, keep_prob = 1, is_training = (mode == tf.estimator.ModeKeys.TRAIN))
+    dropout = tf.contrib.layers.dropout(inputs = bn, keep_prob = 1, is_training = (mode == tf.estimator.ModeKeys.TRAIN))
     
     # Regression Layer
     # Input Tensor Shape: [batch_size, 1024]
