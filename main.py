@@ -74,7 +74,8 @@ def cnn_model(features, labels, mode):
     # FC Layer with 1024 neurons
     # Input Tensor Shape: [batch_size, 7 * 7 * 64]
     # Output Tensor Shape: [batch_size, 1024]
-    fc = tf.contrib.layers.fully_connected(inputs = pool2_flat, num_outputs = 1024, activation_fn = None)
+    fc = tf.contrib.layers.fully_connected(inputs = pool2_flat, num_outputs = 1024, activation_fn = None, 
+                                           weights_initializer=tf.contrib.layers.xavier_initializer())
     
     bn = tf.contrib.layers.batch_norm(inputs = fc, activation_fn = tf.nn.relu)
 
@@ -136,6 +137,7 @@ def main(argv):
         #,hooks=[logging_hook])
 
     # TODO: Evaluate the model and print results
+    #eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": test_data}, y = test_labels, num_epochs = 1, shuffle = False)
     #eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": validation_data}, y = validation_labels, num_epochs = 1, shuffle = False)
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": training_data}, y = training_labels, num_epochs = 1, shuffle = False)
 
