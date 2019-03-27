@@ -10,7 +10,7 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-# tf.logging.set_verbosity(tf.logging.INFO)
+tf.logging.set_verbosity(tf.logging.INFO)
 
 def cnn_model(features, labels, mode):
     # Input Layer
@@ -82,14 +82,14 @@ def cnn_model(features, labels, mode):
     regression = tf.contrib.layers.fully_connected(inputs = dropout, num_outputs = 1, activation_fn = None)
     
     if mode == tf.estimator.ModeKeys.PREDICT:
-      return tf.estimator.EstimatorSpec(mode=mode, predictions = regression)
+      return tf.estimator.EstimatorSpec(mode = mode, predictions = regression)
     
     # Loss function
     loss = tf.losses.mean_squared_error(labels = labels, predictions = regression)
     
     # Configure the Training Op (for TRAIN mode)
     if mode == tf.estimator.ModeKeys.TRAIN:
-      optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.0001)
+      optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-08, use_locking=False, name='Adam')
       train_op = optimizer.minimize(
           loss = loss,
           global_step = tf.train.get_global_step())
@@ -97,10 +97,10 @@ def cnn_model(features, labels, mode):
 
     # Add evaluation metrics (for EVAL mode)
     eval_metric_ops = {
-        "MAE": tf.metrics.mean_absolute_error(
-            labels = labels, predictions = regression)}
-    return tf.estimator.EstimatorSpec(
-        mode = mode, loss = loss, eval_metric_ops = eval_metric_ops)
+        "MAE": tf.metrics.mean_absolute_error(labels = labels, predictions = regression)
+    }
+    
+    return tf.estimator.EstimatorSpec(mode = mode, loss = loss, eval_metric_ops = eval_metric_ops)
 
 
 def main(argv):
@@ -113,13 +113,9 @@ def main(argv):
     age_estimator = tf.estimator.Estimator(model_fn = cnn_model)
     
     # TODO: Set up logs
-    '''
     # Set up logging for predictions
     # Log the values in the "Softmax" tensor with label "probabilities"
-    tensors_to_log = {"probabilities": "softmax_tensor"}
-    logging_hook = tf.train.LoggingTensorHook(
-        tensors=tensors_to_log, every_n_iter=50)
-    '''
+    #logging_hook = tf.train.LoggingTensorHook(tensors = {"loss" : loss, "accuracy" : accuracy}, every_n_iter = 50)
 
     # Train the model
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
@@ -134,10 +130,9 @@ def main(argv):
         steps=200)
         #,hooks=[logging_hook])
 
-    # Evaluate the model and print results
-    eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={"x": eval_data}, y=eval_labels, num_epochs=1, shuffle=False)
-    eval_results = mnist_classifier.evaluate(input_fn=eval_input_fn)
+    # TODO: Evaluate the model and print results
+    eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": validation_data}, y = validation_labels, num_epochs = 1, shuffle = False)
+    eval_results = age_estimator.evaluate(input_fn = eval_input_fn)
     print(eval_results)
     
 def _load_dataset():
