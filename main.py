@@ -21,17 +21,17 @@ tf.logging.set_verbosity(tf.logging.INFO)
 def cnn_model(features, labels, mode):
     # Input Layer
     # Reshape input to 4-D tensor: [batch_size, width, height, channels]
-    input_layer = tf.reshape(features["x"], [-1, 28, 28, 1])
+    input_layer = tf.reshape(features["x"], [-1, 88, 88, 1])
     
     # Conv1 Layer
     # Compute 32 features using a 5x5 filter with ReLU activation.
     # Padding is added to preserve width and height.
-    # Input Tensor Shape: [batch_size, 28, 28, 1]
-    # Output Tensor Shape: [batch_size, 28, 28, 32]
+    # Input Tensor Shape: [batch_size, 88, 88, 1]
+    # Output Tensor Shape: [batch_size, 88, 88, 32]
     conv1 = tf.contrib.layers.conv2d(
         inputs = input_layer,
         num_outputs = 32,
-        kernel_size = [3, 3],
+        kernel_size = [5, 5],
         padding= 'SAME',
         activation_fn = tf.nn.relu,
         weights_initializer=tf.contrib.layers.xavier_initializer()
@@ -39,8 +39,8 @@ def cnn_model(features, labels, mode):
     
     # Pooling1 Layer
     # Max pooling layer with a 2x2 filter and stride of 2
-    # Input Tensor Shape: [batch_size, 28, 28, 32]
-    # Output Tensor Shape: [batch_size, 14, 14, 32]
+    # Input Tensor Shape: [batch_size, 88, 88, 32]
+    # Output Tensor Shape: [batch_size, 44, 44, 32]
     pool1 = tf.contrib.layers.max_pool2d(inputs = conv1, kernel_size = [2, 2], stride = 2)
     
     bn1 = tf.contrib.layers.batch_norm(inputs = pool1, activation_fn = None)
@@ -48,30 +48,29 @@ def cnn_model(features, labels, mode):
     # Conv2 Layer
     # Compute 64 features using a 5x5 filter.
     # Padding is added to preserve width and height.
-    # Input Tensor Shape: [batch_size, 14, 14, 32]
-    # Output Tensor Shape: [batch_size, 14, 14, 64]
+    # Input Tensor Shape: [batch_size, 44, 44, 32]
+    # Output Tensor Shape: [batch_size, 44, 44, 64]
     conv2 = tf.contrib.layers.conv2d(
         inputs = bn1,
         num_outputs = 64,
-        kernel_size = [3, 3],
+        kernel_size = [5, 5],
         padding= 'SAME',
         activation_fn = tf.nn.relu,
         weights_initializer=tf.contrib.layers.xavier_initializer()
     )
     
-
     # Pooling 2 Layer
     # Max pooling layer with a 2x2 filter and stride of 2
-    # Input Tensor Shape: [batch_size, 14, 14, 64]
-    # Output Tensor Shape: [batch_size, 7, 7, 64]
+    # Input Tensor Shape: [batch_size, 44, 44, 64]
+    # Output Tensor Shape: [batch_size, 22, 22, 64]
     pool2 = tf.contrib.layers.max_pool2d(inputs = conv2, kernel_size = [2, 2], stride = 2)
     
     bn2 = tf.contrib.layers.batch_norm(inputs = pool2, activation_fn = None)
     
     # Flatten tensor into a batch of vectors
-    # Input Tensor Shape: [batch_size, 7, 7, 64]
-    # Output Tensor Shape: [batch_size, 7 * 7 * 64]
-    pool2_flat = tf.reshape(bn2, [-1, 7 * 7 * 64])
+    # Input Tensor Shape: [batch_size, 22, 22, 64]
+    # Output Tensor Shape: [batch_size, 22 * 22 * 64]
+    pool2_flat = tf.reshape(bn2, [-1, 22 * 22 * 64])
 
     # FC Layer with 1024 neurons
     # Input Tensor Shape: [batch_size, 7 * 7 * 64]
@@ -87,7 +86,7 @@ def cnn_model(features, labels, mode):
     bn4 = tf.contrib.layers.batch_norm(inputs = fc2, activation_fn = tf.nn.relu)
 
     # Dropout (0.6 probability for keeping the element)
-    dropout = tf.contrib.layers.dropout(inputs = bn4, keep_prob = 1, is_training = (mode == tf.estimator.ModeKeys.TRAIN))
+    dropout = tf.contrib.layers.dropout(inputs = bn4, keep_prob = 0.6, is_training = (mode == tf.estimator.ModeKeys.TRAIN))
     
     # Regression Layer
     # Input Tensor Shape: [batch_size, 1024]
@@ -115,19 +114,20 @@ def cnn_model(features, labels, mode):
     
     return tf.estimator.EstimatorSpec(mode = mode, loss = loss, eval_metric_ops = eval_metric_ops)
 
-
 def main(argv):
     # Load the data
     # Use below to re-generate npy files
-    # training_data, training_labels, validation_data, validation_labels, test_data, test_labels = _load_dataset()
+    training_data, training_labels, validation_data, validation_labels, test_data, test_labels = _load_dataset()
     
     # For colab
+    '''
     training_data = np.load("/content/drive/My Drive/Colab Notebooks/training_data.npy")
     training_labels = np.load("/content/drive/My Drive/Colab Notebooks/training_labels.npy")
     validation_data = np.load("/content/drive/My Drive/Colab Notebooks/validation_data.npy")
     validation_labels = np.load("/content/drive/My Drive/Colab Notebooks/validation_labels.npy")
     test_data = np.load("/content/drive/My Drive/Colab Notebooks/test_data.npy")
     test_labels = np.load("/content/drive/My Drive/Colab Notebooks/test_labels.npy")
+    '''
     
     # For local 
     '''
@@ -155,8 +155,8 @@ def main(argv):
         steps=1200)
 
     # Evaluate the model and print results
-    eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": test_data}, y = test_labels, num_epochs = 1, shuffle = False)
-    #eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": validation_data}, y = validation_labels, num_epochs = 1, shuffle = False)
+    #eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": test_data}, y = test_labels, num_epochs = 1, shuffle = False)
+    eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": validation_data}, y = validation_labels, num_epochs = 1, shuffle = False)
     #eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": training_data}, y = training_labels, num_epochs = 1, shuffle = False)
 
     eval_results = age_estimator.evaluate(input_fn = eval_input_fn)
@@ -171,7 +171,7 @@ def _load_dataset():
     for filename in os.listdir(tr_path):
         training_labels.append(int(filename[:3]))
         img_data = cv2.imread(os.path.join(tr_path, filename), cv2.IMREAD_GRAYSCALE).astype(np.float32)
-        img_data = cv2.resize(img_data, (28, 28)) # Resize
+        img_data = cv2.resize(img_data, (88, 88)) # Resize
         training_data.append(img_data)
         
     training_data = np.array(training_data, dtype='float32')
@@ -188,7 +188,7 @@ def _load_dataset():
     for filename in os.listdir(v_path):
         validation_labels.append(int(filename[:3]))
         img_data = cv2.imread(os.path.join(v_path, filename), cv2.IMREAD_GRAYSCALE).astype(np.float32)
-        img_data = cv2.resize(img_data, (28, 28)) # Resize
+        img_data = cv2.resize(img_data, (88, 88)) # Resize
         validation_data.append(img_data)
         
     validation_data = np.array(validation_data, dtype='float32')
@@ -205,7 +205,7 @@ def _load_dataset():
     for filename in os.listdir(t_path):
         test_labels.append(int(filename[:3]))
         img_data = cv2.imread(os.path.join(t_path, filename), cv2.IMREAD_GRAYSCALE).astype(np.float32)
-        img_data = cv2.resize(img_data, (28, 28)) # Resize
+        img_data = cv2.resize(img_data, (88, 88)) # Resize
         test_data.append(img_data)
         
     test_data = np.array(test_data, dtype='float32')
