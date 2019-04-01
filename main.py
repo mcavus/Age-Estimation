@@ -10,6 +10,12 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
+# For colab
+'''
+from google.colab import drive
+drive.mount('/content/drive')
+'''
+
 tf.logging.set_verbosity(tf.logging.INFO)
 
 def cnn_model(features, labels, mode):
@@ -112,11 +118,28 @@ def cnn_model(features, labels, mode):
 
 def main(argv):
     # Load the data
-    training_data, training_labels, validation_data, validation_labels, test_data, test_labels = _load_dataset()
+    # Use below to re-generate npy files
+    # training_data, training_labels, validation_data, validation_labels, test_data, test_labels = _load_dataset()
+    
+    # For colab
+    training_data = np.load("/content/drive/My Drive/Colab Notebooks/training_data.npy")
+    training_labels = np.load("/content/drive/My Drive/Colab Notebooks/training_labels.npy")
+    validation_data = np.load("/content/drive/My Drive/Colab Notebooks/validation_data.npy")
+    validation_labels = np.load("/content/drive/My Drive/Colab Notebooks/validation_labels.npy")
+    test_data = np.load("/content/drive/My Drive/Colab Notebooks/test_data.npy")
+    test_labels = np.load("/content/drive/My Drive/Colab Notebooks/test_labels.npy")
+    
+    # For local 
+    '''
+    training_data = np.load("training_data.npy")
+    training_labels = np.load("training_labels.npy")
+    validation_data = np.load("validation_data.npy")
+    validation_labels = np.load("validation_labels.npy")
+    test_data = np.load("test_data.npy")
+    test_labels = np.load("test_labels.npy")
+    '''
     
     # Estimator
-    # cnn_model(training_data, training_labels, None)
-    # age_estimator = tf.contrib.learn.Estimator(model_fn = cnn_model, model_dir="/temp/age_est_convnet_model")
     age_estimator = tf.estimator.Estimator(model_fn = cnn_model)
     
     # Train the model
@@ -130,11 +153,10 @@ def main(argv):
     age_estimator.train(
         input_fn = train_input_fn,
         steps=1200)
-        #,hooks=[logging_hook])
 
     # Evaluate the model and print results
-    #eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": test_data}, y = test_labels, num_epochs = 1, shuffle = False)
-    eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": validation_data}, y = validation_labels, num_epochs = 1, shuffle = False)
+    eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": test_data}, y = test_labels, num_epochs = 1, shuffle = False)
+    #eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": validation_data}, y = validation_labels, num_epochs = 1, shuffle = False)
     #eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": training_data}, y = training_labels, num_epochs = 1, shuffle = False)
 
     eval_results = age_estimator.evaluate(input_fn = eval_input_fn)
@@ -155,6 +177,8 @@ def _load_dataset():
     training_data = np.array(training_data, dtype='float32')
     training_labels = np.array(training_labels, dtype='float32')
     training_labels = training_labels.reshape(len(training_labels), 1)
+    np.save('training_data', training_data)
+    np.save('training_labels', training_labels)
     
     # Validation set
     validation_data = []
@@ -170,6 +194,8 @@ def _load_dataset():
     validation_data = np.array(validation_data, dtype='float32')
     validation_labels = np.array(validation_labels, dtype='float32')
     validation_labels = validation_labels.reshape(len(validation_labels), 1)
+    np.save('validation_data', validation_data)
+    np.save('validation_labels', validation_labels)
     
     # Test set
     test_data = []
@@ -185,6 +211,8 @@ def _load_dataset():
     test_data = np.array(test_data, dtype='float32')
     test_labels = np.array(test_labels, dtype='float32')
     test_labels = test_labels.reshape(len(test_labels), 1)
+    np.save('test_data', test_data)
+    np.save('test_labels', test_labels)
     
     return training_data, training_labels, validation_data, validation_labels, test_data, test_labels
     
