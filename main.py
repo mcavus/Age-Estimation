@@ -37,7 +37,7 @@ def cnn_model(features, labels, mode):
     # Output Tensor Shape: [batch_size, 14, 14, 32]
     pool1 = tf.contrib.layers.max_pool2d(inputs = conv1, kernel_size = [2, 2], stride = 2)
     
-    bn3 = tf.contrib.layers.batch_norm(inputs = pool1, activation_fn = None)
+    bn1 = tf.contrib.layers.batch_norm(inputs = pool1, activation_fn = None)
 
     # Conv2 Layer
     # Compute 64 features using a 5x5 filter.
@@ -45,7 +45,7 @@ def cnn_model(features, labels, mode):
     # Input Tensor Shape: [batch_size, 14, 14, 32]
     # Output Tensor Shape: [batch_size, 14, 14, 64]
     conv2 = tf.contrib.layers.conv2d(
-        inputs = bn3,
+        inputs = bn1,
         num_outputs = 64,
         kernel_size = [3, 3],
         padding= 'SAME',
@@ -60,20 +60,12 @@ def cnn_model(features, labels, mode):
     # Output Tensor Shape: [batch_size, 7, 7, 64]
     pool2 = tf.contrib.layers.max_pool2d(inputs = conv2, kernel_size = [2, 2], stride = 2)
     
-    bn4 = tf.contrib.layers.batch_norm(inputs = pool2, activation_fn = None)
-    
-    # TODO: Conv3 Layer
-    
-    # TODO: Pooling 3 Layer
-    
-    # TODO: Conv4 Layer
-    
-    # TODO: Pooling 4 Layer
+    bn2 = tf.contrib.layers.batch_norm(inputs = pool2, activation_fn = None)
     
     # Flatten tensor into a batch of vectors
     # Input Tensor Shape: [batch_size, 7, 7, 64]
     # Output Tensor Shape: [batch_size, 7 * 7 * 64]
-    pool2_flat = tf.reshape(bn4, [-1, 7 * 7 * 64])
+    pool2_flat = tf.reshape(bn2, [-1, 7 * 7 * 64])
 
     # FC Layer with 1024 neurons
     # Input Tensor Shape: [batch_size, 7 * 7 * 64]
@@ -81,15 +73,15 @@ def cnn_model(features, labels, mode):
     fc1 = tf.contrib.layers.fully_connected(inputs = pool2_flat, num_outputs = 1024, activation_fn = None, 
                                            weights_initializer=tf.contrib.layers.xavier_initializer())
     
-    bn1 = tf.contrib.layers.batch_norm(inputs = fc1, activation_fn = tf.nn.relu)
+    bn3 = tf.contrib.layers.batch_norm(inputs = fc1, activation_fn = tf.nn.relu)
 
-    fc2 = tf.contrib.layers.fully_connected(inputs = bn1, num_outputs = 1024, activation_fn = None, 
+    fc2 = tf.contrib.layers.fully_connected(inputs = bn3, num_outputs = 1024, activation_fn = None, 
                                            weights_initializer=tf.contrib.layers.xavier_initializer())
     
-    bn2 = tf.contrib.layers.batch_norm(inputs = fc2, activation_fn = tf.nn.relu)
+    bn4 = tf.contrib.layers.batch_norm(inputs = fc2, activation_fn = tf.nn.relu)
 
     # Dropout (0.6 probability for keeping the element)
-    dropout = tf.contrib.layers.dropout(inputs = bn2, keep_prob = 1, is_training = (mode == tf.estimator.ModeKeys.TRAIN))
+    dropout = tf.contrib.layers.dropout(inputs = bn4, keep_prob = 1, is_training = (mode == tf.estimator.ModeKeys.TRAIN))
     
     # Regression Layer
     # Input Tensor Shape: [batch_size, 1024]
@@ -127,11 +119,6 @@ def main(argv):
     # age_estimator = tf.contrib.learn.Estimator(model_fn = cnn_model, model_dir="/temp/age_est_convnet_model")
     age_estimator = tf.estimator.Estimator(model_fn = cnn_model)
     
-    # TODO: Set up logs
-    # Set up logging for predictions
-    # Log the values in the "Softmax" tensor with label "probabilities"
-    #logging_hook = tf.train.LoggingTensorHook(tensors = {"loss" : loss, "accuracy" : accuracy}, every_n_iter = 50)
-
     # Train the model
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
         x = {"x": training_data},
@@ -145,10 +132,10 @@ def main(argv):
         steps=1200)
         #,hooks=[logging_hook])
 
-    # TODO: Evaluate the model and print results
+    # Evaluate the model and print results
     #eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": test_data}, y = test_labels, num_epochs = 1, shuffle = False)
-    #eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": validation_data}, y = validation_labels, num_epochs = 1, shuffle = False)
-    eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": training_data}, y = training_labels, num_epochs = 1, shuffle = False)
+    eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": validation_data}, y = validation_labels, num_epochs = 1, shuffle = False)
+    #eval_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": training_data}, y = training_labels, num_epochs = 1, shuffle = False)
 
     eval_results = age_estimator.evaluate(input_fn = eval_input_fn)
     print(eval_results)
