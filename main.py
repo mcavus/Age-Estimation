@@ -256,28 +256,6 @@ def main():
     plt.show()
     print("Predicted: ", int(pred_list[success_index]), ", Real: ", int(test_labels[success_index]))
     
-    '''
-    LEGACY CODE FOR EARLY STOPPING HOOKS
-    
-    checkpoint_hook = tf.train.CheckpointSaverHook(checkpoint_dir = age_estimator.model_dir, save_steps = 100)
-    logging_hook = tf.train.LoggingTensorHook(tensors={"loss": "loss_to_log"}, every_n_iter = 100)
-    early_stop_hook = tf.contrib.estimator.stop_if_lower_hook(estimator = age_estimator, 
-                                               metric_name = 'MAE_to_log', 
-                                               threshold = 6.1,
-                                               run_every_steps = 10,
-                                               run_every_secs = None)
-    train_spec = tf.estimator.TrainSpec(
-        input_fn = train_input_fn,
-        max_steps = 1000,
-        hooks = [checkpoint_hook]
-    )
-
-    eval_spec = tf.estimator.EvalSpec(input_fn = eval_input_fn, steps = 100, hooks = [es_logging_hook ,early_stop_hook])
-
-    eval_results = tf.estimator.train_and_evaluate(age_estimator, train_spec, eval_spec)
-    
-    ''' 
-    
 def _load_dataset():
     # Training set
     training_data = []
